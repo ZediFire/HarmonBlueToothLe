@@ -32,6 +32,8 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -54,6 +56,8 @@ public class BluetoothLeService extends Service {
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
+    private Timer mRssiTimer;
+    
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -79,12 +83,27 @@ public class BluetoothLeService extends Service {
                 Log.i(TAG, "Connected to GATT server.");
                 // Attempts to discover services after successful connection.
                 Log.i(TAG, "Attempting to start service discovery:" + mBluetoothGatt.discoverServices());
+                
+                TimerTask task = new TimerTask()
+                {
+                   @Override
+                   public void run()
+                   {
+                      mBluetoothGatt.readRemoteRssi();
+                   }
+                };
+                mRssiTimer = new Timer();
+                mRssiTimer.schedule(task, 1000, 1000);
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
                 broadcastUpdate(intentAction);
+                if( mRssiTimer != null){
+                	 mRssiTimer.cancel();
+                }
+                
             }
         }
 

@@ -135,6 +135,7 @@ public class DeviceControlActivity extends Activity {
             }
             // Automatically connects to the device upon successful start-up initialization.
             mBluetoothLeService.connect(mDeviceAddress);
+            
         }
 
         @Override
@@ -499,7 +500,7 @@ public class DeviceControlActivity extends Activity {
                         	
                         	mBluetoothLeService.connect(mDeviceAddress);
                         }catch(Exception ex){
-                        	
+                        	ex.printStackTrace();
                         }
                         break;
                     default:
