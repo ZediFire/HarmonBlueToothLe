@@ -52,7 +52,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private BluetoothLeScanner mScanner;
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothLeDeviceStore mDeviceStore;
-
+    private String TAG = "MainActivity";
    
     
     
@@ -61,9 +61,12 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         public void onLeScan(final BluetoothDevice device, final int rssi, final byte[] scanRecord) {
         	
             final BluetoothLeDevice deviceLe = new BluetoothLeDevice(device, rssi, scanRecord, System.currentTimeMillis());
-            mDeviceStore.addDevice(deviceLe);
+            if(deviceLe.getName() != null)
+            Log.d(TAG, deviceLe.getName()+"");
+            if(deviceLe.getName() != null)
+            	mDeviceStore.addDevice(deviceLe);
             final EasyObjectCursor<BluetoothLeDevice> c = mDeviceStore.getDeviceCursor();
-            Log.d("MainActivity","mLeScanCallback called.... back...lol");
+            //Log.d("MainActivity","mLeScanCallback called.... back...lol");
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

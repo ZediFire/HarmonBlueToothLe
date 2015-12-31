@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 //import android.support.v7.app.AppCompatActivity;
@@ -113,6 +114,7 @@ public class DeviceControlActivity extends Activity {
                         mNotifyCharacteristic = null;
                     }
                     mBluetoothLeService.readCharacteristic(characteristic);
+                    mBluetoothLeService.setActivity(DeviceControlActivity.this);
                 }
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
                     mNotifyCharacteristic = characteristic;
@@ -128,7 +130,9 @@ public class DeviceControlActivity extends Activity {
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(final ComponentName componentName, final IBinder service) {
+        	Log.d(TAG,"onService connected setting activity in bluetoot l.e. service");
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            mBluetoothLeService.setActivity(DeviceControlActivity.this);
             if (!mBluetoothLeService.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
@@ -325,7 +329,7 @@ public class DeviceControlActivity extends Activity {
 
         final Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-        
+         
         hkwireless.registerHKWirelessControllerListener(new HKWirelessListener(){
 
 			@Override
@@ -412,6 +416,44 @@ public class DeviceControlActivity extends Activity {
 		});
     }
 
+    public void setVolumeFromRssi(final int progress){
+    	try{
+	    	
+	    	long deviceId = Util.getInstance().getDevices().get(0).deviceObj.deviceId;
+			pcmCodec.setVolumeDevice(deviceId, progress);
+			
+			this.runOnUiThread(new Runnable() {
+  			  public void run() {
+  				mDataAsString.setText("setting volume to: "+progress);
+  				volumeControl.setProgress(progress);
+  			  }
+  			});
+    	}catch(Exception ex){
+    		ex.printStackTrace();
+    	}
+    }
+    
+    public void setRSSI(final String rssi){
+    	try{
+//    		Handler handler = new Handler();
+//    		handler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    // This gets executed on the UI thread so it can safely modify Views
+//                	mGattUUIDDesc.setText(""+rssi);
+//                }
+//            });
+    		this.runOnUiThread(new Runnable() {
+    			  public void run() {
+    				  mGattUUIDDesc.setText(rssi);
+    			  }
+    			});
+    		
+    	}catch(Exception ex){
+    		ex.printStackTrace();
+    	}
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
@@ -479,6 +521,7 @@ public class DeviceControlActivity extends Activity {
         super.onResume();
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
+        	mBluetoothLeService.setActivity(this);
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
             Log.d(TAG, "Connect request result=" + result);
         }
@@ -499,6 +542,7 @@ public class DeviceControlActivity extends Activity {
                         try{
                         	
                         	mBluetoothLeService.connect(mDeviceAddress);
+                        	//mBluetoothLeService.setActivity(this);
                         }catch(Exception ex){
                         	ex.printStackTrace();
                         }

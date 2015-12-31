@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import uk.co.alt236.btlescan.activities.DeviceControlActivity;
+import uk.co.alt236.btlescan.util.BluetoothUtils;
+
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
@@ -57,6 +60,16 @@ public class BluetoothLeService extends Service {
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
     private Timer mRssiTimer;
+    private DeviceControlActivity myActivity;
+    
+    private int READ_REMOTE_RSSI_COUNT=0;
+    private int READ_REMOTE_RSSI_RESET=3;
+    private boolean READ_REMOTE_RSSI_FIRST_RUN = false;
+    private int READ_REMOTE_RSSI_CALIBRATION = 0;
+    private int [] READ_REMOTE_RSSI_ARRAY= new int [READ_REMOTE_RSSI_RESET];
+    public void setActivity(DeviceControlActivity activity){
+    	myActivity = activity;
+    }
     
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -74,6 +87,56 @@ public class BluetoothLeService extends Service {
         }
 
         @Override
+        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
+            Log.i(TAG,"rssi = " + rssi);
+            myActivity.setRSSI(""+rssi);
+            READ_REMOTE_RSSI_ARRAY[READ_REMOTE_RSSI_COUNT]=rssi;
+            READ_REMOTE_RSSI_COUNT++;
+            
+            if(READ_REMOTE_RSSI_COUNT%READ_REMOTE_RSSI_RESET==0){
+            	READ_REMOTE_RSSI_COUNT=0;
+            	 int sum = 0;
+                 
+                 for(int i=0; i < READ_REMOTE_RSSI_ARRAY.length ; i++){
+                         sum = sum + READ_REMOTE_RSSI_ARRAY[i];
+                 }
+                 double average = sum / READ_REMOTE_RSSI_ARRAY.length;
+                 myActivity.setRSSI(rssi+" avg: "+average+" calibration:"+READ_REMOTE_RSSI_CALIBRATION);
+                 
+                 if(READ_REMOTE_RSSI_FIRST_RUN == false){
+                	 READ_REMOTE_RSSI_FIRST_RUN = true;
+                	 READ_REMOTE_RSSI_CALIBRATION = Math.abs((int)average);
+                	 return;
+                 }
+	            int volume=0;
+	            if(average <-85){
+	            	volume =0;
+	            }else{  
+	             //volume = Math.abs((int)average)/2;
+	            	//THIS IS QUICK AND DIRTY
+	            	//THE REAL ALGORITHM SHOULD CONTAIN RAISING RSSI To THE POWER OF 10 OR SOMETHING
+	            	int absAverage = Math.abs((int)average);
+	            	Log.e(TAG,"absAverage: "+absAverage+" READ_REMOTE_RSSI_CALIBRATION "+READ_REMOTE_RSSI_CALIBRATION);
+	            	if(BluetoothUtils.isBetween(absAverage, READ_REMOTE_RSSI_CALIBRATION+20, READ_REMOTE_RSSI_CALIBRATION+1000)){
+	            		volume=45;
+	            	}
+	            
+	            	else if(BluetoothUtils.isBetween(absAverage, READ_REMOTE_RSSI_CALIBRATION+10, READ_REMOTE_RSSI_CALIBRATION+19)){
+	            		volume=35;
+	            	}
+	            	else if(BluetoothUtils.isBetween(absAverage, READ_REMOTE_RSSI_CALIBRATION, READ_REMOTE_RSSI_CALIBRATION+9)){
+	            		volume=25;
+	            	}else{
+	            		volume=15;
+	            	}
+
+	            }
+	            Log.e(TAG,"Setting volume " + volume);
+	            myActivity.setVolumeFromRssi(volume);
+            }
+        }
+        
+        @Override
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             final String intentAction;
             if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -90,6 +153,7 @@ public class BluetoothLeService extends Service {
                    public void run()
                    {
                       mBluetoothGatt.readRemoteRssi();
+                      
                    }
                 };
                 mRssiTimer = new Timer();

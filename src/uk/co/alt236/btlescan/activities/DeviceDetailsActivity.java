@@ -39,14 +39,14 @@ import uk.co.alt236.btlescan.util.TimeFormatter;
 public class DeviceDetailsActivity extends Activity {
     public static final String EXTRA_DEVICE = "extra_device";
     @Bind(android.R.id.list)
-    protected ListView mList;
+    protected ListView mList; 
     @Nullable
     @Bind(android.R.id.empty)
     protected View mEmpty;
     private BluetoothLeDevice mDevice;
     
     protected Button btnDrillDetails;
-
+ 
     private void appendAdRecordView(final MergeAdapter adapter, final String title, final AdRecord record) {
         final LinearLayout lt = (LinearLayout) getLayoutInflater().inflate(R.layout.list_item_view_adrecord, null);
         final TextView tvString = (TextView) lt.findViewById(R.id.data_as_string);

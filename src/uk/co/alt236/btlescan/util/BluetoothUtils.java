@@ -40,4 +40,8 @@ public final class BluetoothUtils {
             return mBluetoothAdapter.isEnabled();
         }
     }
+    
+    public static boolean isBetween(int x, int lower, int upper) {
+    	  return lower <= x && x <= upper;
+    	}
 }
